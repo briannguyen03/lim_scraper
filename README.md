@@ -61,8 +61,8 @@ resume/
 Clone the repository and install dependencies:
 
 ```bash
-git clone <repo-url>
-cd job-board-scraper
+git clone https://github.com/briannguyen03/lim_scraper.git
+cd sel-webscrape
 pip install -r requirements.txt
 ```
 
