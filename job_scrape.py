@@ -12,6 +12,7 @@ Updated to support:
 - Cookie saving/loading modes
 - Environment variable configuration via run.sh
 - Selenium 4.6.0+ automatic driver management
+- Improved browser detection for macOS
 '''
 
 import os
@@ -28,8 +29,6 @@ from selenium.webdriver.chrome.options import Options as ChromeOptions
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.firefox.service import Service as FirefoxService
-from webdriver_manager.chrome import ChromeDriverManager
-from webdriver_manager.firefox import GeckoDriverManager
 
 
 class UVicJobBoardScraper:
@@ -74,22 +73,22 @@ class UVicJobBoardScraper:
         options.add_experimental_option('useAutomationExtension', False)
         
         try:
-            # Use webdriver-manager to automatically handle ChromeDriver
-            print("[*] Setting up ChromeDriver automatically...")
-            service = ChromeService(ChromeDriverManager().install())
-            driver = webdriver.Chrome(service=service, options=options)
+            # Try to import webdriver_manager, install if not available
+            try:
+                from webdriver_manager.chrome import ChromeDriverManager
+                print("[*] Setting up ChromeDriver automatically...")
+                service = ChromeService(ChromeDriverManager().install())
+                driver = webdriver.Chrome(service=service, options=options)
+            except ImportError:
+                print("[*] webdriver-manager not available, trying direct Chrome driver...")
+                driver = webdriver.Chrome(options=options)
+            
             print("[*] Chrome driver initialized successfully")
             return driver
         except Exception as e:
             print(f"[error] Failed to initialize Chrome driver: {e}")
-            
-            # Check if Firefox is available as fallback
-            if self.browser_choice == 'chrome':  # Only fallback if Chrome was explicitly chosen
-                print("[*] Attempting to fallback to Firefox...")
-                self.browser_choice = 'firefox'
-                return self.setup_firefox_driver()
-            else:
-                raise
+            print("[*] Attempting to fallback to Firefox...")
+            return self.setup_firefox_fallback()
     
     def setup_firefox_driver(self):
         options = FirefoxOptions()
@@ -110,22 +109,34 @@ class UVicJobBoardScraper:
         options.set_preference('devtools.jsonview.enabled', False)
         
         try:
-            # Use webdriver-manager to automatically handle GeckoDriver
-            print("[*] Setting up GeckoDriver automatically...")
-            service = FirefoxService(GeckoDriverManager().install())
-            driver = webdriver.Firefox(service=service, options=options)
+            # Try to import webdriver_manager, install if not available
+            try:
+                from webdriver_manager.firefox import GeckoDriverManager
+                print("[*] Setting up GeckoDriver automatically...")
+                service = FirefoxService(GeckoDriverManager().install())
+                driver = webdriver.Firefox(service=service, options=options)
+            except ImportError:
+                print("[*] webdriver-manager not available, trying direct Firefox driver...")
+                driver = webdriver.Firefox(options=options)
+            
             print("[*] Firefox driver initialized successfully")
             return driver
         except Exception as e:
             print(f"[error] Failed to initialize Firefox driver: {e}")
             
-            # Check if Chrome is available as fallback
-            if self.browser_choice == 'firefox':  # Only fallback if Firefox was explicitly chosen
+            # If we were trying Firefox as primary choice, try Chrome as fallback
+            if self.browser_choice == 'firefox':
                 print("[*] Attempting to fallback to Chrome...")
                 self.browser_choice = 'chrome'
                 return self.setup_chrome_driver()
             else:
                 raise
+    
+    def setup_firefox_fallback(self):
+        """Fallback to Firefox when Chrome fails"""
+        print("[*] Setting up Firefox as fallback...")
+        self.browser_choice = 'firefox'
+        return self.setup_firefox_driver()
     
     def clean_filename(self, title):
         return re.sub(r'[\\/*?:"<>|]', "_", title)

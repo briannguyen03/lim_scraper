@@ -124,27 +124,6 @@ check_dependencies() {
     activate_venv
     install_dependencies
     
-    # Check for browsers (Selenium will handle drivers automatically)
-    if command -v google-chrome &> /dev/null || command -v chrome &> /dev/null || command -v chromium &> /dev/null; then
-        CHROME_AVAILABLE=true
-        log_info "Chrome/Chromium browser detected"
-    else
-        CHROME_AVAILABLE=false
-        log_info "Chrome/Chromium not found, will use Firefox if available"
-    fi
-    
-    if command -v firefox &> /dev/null; then
-        FIREFOX_AVAILABLE=true
-        log_info "Firefox browser detected"
-    else
-        FIREFOX_AVAILABLE=false
-    fi
-    
-    if [ "$CHROME_AVAILABLE" = false ] && [ "$FIREFOX_AVAILABLE" = false ]; then
-        log_error "No supported browser found. Please install Chrome or Firefox."
-        exit 1
-    fi
-    
     log_success "Dependency check passed"
 }
 
@@ -169,24 +148,12 @@ setup_directories() {
 # Run scraper with specified mode
 run_scraper() {
     local mode=$1
-    local browser_choice=$2
     
     log_info "Starting scraper in mode: $mode"
     
-    # Determine browser to use
-    local browser=""
-    if [ -n "$browser_choice" ]; then
-        browser="$browser_choice"
-    elif [ "$CHROME_AVAILABLE" = true ]; then
-        browser="chrome"
-        log_info "Using Chrome as default browser"
-    elif [ "$FIREFOX_AVAILABLE" = true ]; then
-        browser="firefox"
-        log_info "Using Firefox as fallback browser"
-    else
-        log_error "No browser available"
-        exit 1
-    fi
+    # Always try Chrome first, Python script will handle Firefox fallback
+    local browser="chrome"
+    log_info "Attempting to use Chrome (will fallback to Firefox if needed)"
     
     # Prepare environment variables for Python script
     local env_vars=""
@@ -202,13 +169,8 @@ run_scraper() {
             env_vars="SCRAPER_MODE=manual SAVE_COOKIES=true"
             
             # Create browser profile directory
-            if [ "$browser" = "chrome" ]; then
-                mkdir -p "$CHROME_PROFILE_DIR"
-                env_vars="$env_vars CHROME_USER_DATA_DIR=$CHROME_PROFILE_DIR"
-            elif [ "$browser" = "firefox" ]; then
-                mkdir -p "$FIREFOX_PROFILE_DIR"
-                env_vars="$env_vars FIREFOX_PROFILE_DIR=$FIREFOX_PROFILE_DIR"
-            fi
+            mkdir -p "$CHROME_PROFILE_DIR"
+            env_vars="$env_vars CHROME_USER_DATA_DIR=$CHROME_PROFILE_DIR"
             ;;
         3)
             # Mode 3: Automated with saved cookies
@@ -216,19 +178,11 @@ run_scraper() {
             env_vars="SCRAPER_MODE=auto SAVE_COOKIES=false"
             
             # Check if cookies exist
-            if [ "$browser" = "chrome" ]; then
-                if [ ! -d "$CHROME_PROFILE_DIR" ] || [ -z "$(ls -A "$CHROME_PROFILE_DIR" 2>/dev/null)" ]; then
-                    log_error "No saved Chrome cookies found. Please run mode 2 first to save cookies."
-                    exit 1
-                fi
-                env_vars="$env_vars CHROME_USER_DATA_DIR=$CHROME_PROFILE_DIR"
-            elif [ "$browser" = "firefox" ]; then
-                if [ ! -d "$FIREFOX_PROFILE_DIR" ] || [ -z "$(ls -A "$FIREFOX_PROFILE_DIR" 2>/dev/null)" ]; then
-                    log_error "No saved Firefox cookies found. Please run mode 2 first to save cookies."
-                    exit 1
-                fi
-                env_vars="$env_vars FIREFOX_PROFILE_DIR=$FIREFOX_PROFILE_DIR"
+            if [ ! -d "$CHROME_PROFILE_DIR" ] || [ -z "$(ls -A "$CHROME_PROFILE_DIR" 2>/dev/null)" ]; then
+                log_error "No saved Chrome cookies found. Please run mode 2 first to save cookies."
+                exit 1
             fi
+            env_vars="$env_vars CHROME_USER_DATA_DIR=$CHROME_PROFILE_DIR"
             ;;
         *)
             log_error "Invalid mode: $mode"
