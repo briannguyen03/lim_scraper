@@ -13,7 +13,7 @@ The result is a ranked list of job matches saved to file.
 
 ---
 
-## Enhanced Features
+## Features
 
 * **Automated runner script** with three operation modes
 * **Virtual environment management** (auto-created and activated)
