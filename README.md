@@ -2,102 +2,102 @@
 
 ## Overview
 
-This project automates the process of collecting co-op job postings from the **University of Victoria’s Learning in Motion (LIM) job board** and comparing them against your resume.
+This project automates the process of collecting co-op job postings from the **University of Victoria's Learning in Motion (LIM) job board** and comparing them against your resume.
 
 It is a two-part workflow:
 
 1. **Scraping**: Extracts job metadata, job descriptions, and qualifications.
 2. **Matching**: Sends your resume and all scraped postings to a local resume-matcher API for comparison.
 
-if you just want the scraped jobs then comment out "subprocess.run(["python3", "match-client.py"])" in job_scrape.py
-
 The result is a ranked list of job matches saved to file.
 
 ---
 
-## Features
+## Enhanced Features
 
-* Automated Selenium scraping of LIM job postings.
-* Saves:
-
-  * Structured job metadata → `uvic_jobs.tsv`.
-  * Individual job descriptions → `job_desc/*.txt`.
-* Calls a local API to match postings with your resume.
-* Saves match results to `job_matches.txt`.
-* Supports resume formats: **PDF, TXT, DOCX**.
+* **Automated runner script** with three operation modes
+* **Virtual environment management** (auto-created and activated)
+* **Browser fallback support** (Chrome with Firefox fallback)
+* **Cookie-based session persistence** for automated login
+* **Dependency auto-installation** and validation
 
 ---
 
-## Requirements
-
-* **Python 3.x**
-* **Selenium** (`pip install selenium`)
-* **Google Chrome** + matching **ChromeDriver** in PATH
-* **requests** (`pip install requests`)
-* A running **resume-matcher API** (local server on `http://localhost:3000/api/upload`)
-
----
-
-## Directory Setup
-
-The following directories must exist before running:
-
-```
-job_desc/   # Populated automatically with scraped job descriptions
-resume/     # Place your resume here (PDF, TXT, or DOCX)
-```
-
-Example:
-
-```
-resume/
- └── BrianNguyen.pdf
-```
-
----
-
-## Installation
-
-Clone the repository and install dependencies:
+## Quick Start
 
 ```bash
+# Clone the repository
 git clone https://github.com/briannguyen03/lim_scraper.git
-cd sel-webscrape
-pip install -r requirements.txt
+cd lim_scraper
+
+# Make the runner script executable
+chmod +x run.sh
+
+# Run the interactive menu
+./run.sh
 ```
 
----
+## Usage Guide
 
-## Usage
+### Runner Script Modes
 
-### 1. Run the Scraper
+The `run.sh` script provides three operation modes:
 
-Start by scraping the UVic LIM job board:
+1. **Manual login (no cookies)**
+   - Opens browser for manual login
+   - No cookies saved
+   - Good for one-time use
+
+2. **Manual login with cookie saving**
+   - Opens browser for manual login  
+   - Saves session cookies to `cookies/` directory
+   - Required for future automated runs
+
+3. **Automated run with saved cookies**
+   - Uses previously saved cookies
+   - Attempts automated login
+   - Falls back to manual if cookies expire
+
+### First-Time Setup
+
+1. Run `./run.sh` and select option 4 "Check dependencies and setup"
+2. The script will:
+   - Create a Python virtual environment
+   - Install required dependencies (selenium, requests)
+   - Validate browser installations
+   - Create necessary directories
+
+3. Place your resume in the `resume/` directory (PDF, DOCX, or TXT format)
+
+### Recommended Workflow
+
+1. First run: Use mode 2 to save cookies
+2. Subsequent runs: Use mode 3 for automation
+3. If cookies expire: Use mode 2 to refresh
+
+### Manual Scraping (Legacy)
+
+If you prefer to run without the runner script:
 
 ```bash
 python job_scrape.py
 ```
 
-* A Chrome window will open.
-* Log in manually (including 2FA if required).
-* Once the job postings are visible, return to the terminal and press **ENTER**.
-* Job descriptions will be saved to `job_desc/` and metadata to `uvic_jobs.tsv`.
-* Every 10 jobs, the script pauses — press **ENTER** to continue or type `match` to stop scraping and proceed to resume matching.
+* A browser window will open
+* Log in manually (including 2FA if required)
+* Once job postings are visible, press ENTER
+* Every 10 jobs, the script pauses - press ENTER to continue or type `match` to proceed to matching
 
-### 2. Run the Matcher (automatic)
+### Matching
 
-At the end of scraping, if job descriptions are found, the script automatically calls:
+At the end of scraping, if job descriptions are found, the script automatically calls the matcher:
 
 ```bash
 python match-client.py
 ```
 
-This sends your resume + scraped jobs to the matcher API.
-Results are written to:
-
-```
-job_matches.txt
-```
+This sends your resume + scraped jobs to the matcher API at `http://localhost:3000/api/upload`.
+Results are written to `job_matches.txt`.
 
 ---
 
@@ -105,19 +105,35 @@ job_matches.txt
 
 ```
 .
-├── job_scrape.py      # Scraper: extracts jobs from UVic LIM
-├── match-client.py    # Client: sends resume + jobs to matcher API
-├── uvic_jobs.tsv      # Tab-separated job metadata (created at runtime)
-├── job_matches.txt    # JSON output of resume matcher results (created at runtime)
-├── job_desc/          # Job description text files (populated at runtime)
-└── resume/            # Directory to store your resume (user-provided)
+├── run.sh              # Main runner script with virtual environment support
+├── job_scrape.py       # Enhanced scraper with cookie/browser fallback support
+├── match-client.py     # Client: sends resume + jobs to matcher API
+├── venv/               # Python virtual environment (auto-created)
+├── cookies/            # Saved browser profiles for session persistence
+│   ├── chrome_profile/
+│   └── firefox_profile/
+├── job_desc/           # Job description text files (populated at runtime)
+├── resume/             # Directory to store your resume (user-provided)
+├── data/               # Additional data storage
+├── uvic_jobs.tsv       # Tab-separated job metadata (created at runtime)
+├── job_matches.txt     # JSON output of resume matcher results (created at runtime)
+└── scraper.log         # Log file for debugging
 ```
+
+---
+
+## Requirements
+
+* **Python 3.x** with venv or virtualenv support
+* **Google Chrome** or **Firefox** browser
+* **ChromeDriver** or **GeckoDriver** (auto-detected with helpful errors)
+* **resume-matcher API** (optional, for matching functionality)
 
 ---
 
 ## Notes
 
-* You must manually log in to LIM; the scraper does not handle credentials.
-* Ensure ChromeDriver version matches your installed Chrome browser.
-* The matcher API must be running locally on port 3000 before using this project.
-* If no job descriptions are scraped, `match-client.py` will be skipped.
+* You must manually log in to LIM on first run; the scraper does not handle credentials
+* The matcher API must be running locally on port 3000 to enable matching
+* If no job descriptions are scraped, the matcher will be skipped
+* Logs are saved to `scraper.log` with [*] for info and [error] for errors
