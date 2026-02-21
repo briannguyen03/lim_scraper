@@ -14,12 +14,6 @@ FIREFOX_PROFILE_DIR="${COOKIE_DIR}/firefox_profile"
 LOG_FILE="${SCRIPT_DIR}/scraper.log"
 REQUIREMENTS_FILE="${SCRIPT_DIR}/requirements.txt"
 
-# Colors for output (optional, can be removed if not wanted)
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
-
 # Logging functions
 log_info() {
     echo "[*] $1" | tee -a "$LOG_FILE"
@@ -111,9 +105,9 @@ install_dependencies() {
             exit 1
         }
     else
-        log_info "No requirements.txt found, installing selenium and requests..."
-        pip install selenium requests || {
-            log_error "Failed to install selenium and requests"
+        log_info "No requirements.txt found, installing selenium and webdriver-manager..."
+        pip install selenium webdriver-manager requests || {
+            log_error "Failed to install selenium and webdriver-manager"
             exit 1
         }
     fi
@@ -130,7 +124,7 @@ check_dependencies() {
     activate_venv
     install_dependencies
     
-    # Check for browsers
+    # Check for browsers (Selenium will handle drivers automatically)
     if command -v google-chrome &> /dev/null || command -v chrome &> /dev/null || command -v chromium &> /dev/null; then
         CHROME_AVAILABLE=true
         log_info "Chrome/Chromium browser detected"
@@ -172,68 +166,6 @@ setup_directories() {
     log_success "Directory setup complete"
 }
 
-# Get browser driver
-get_browser_driver() {
-    local browser=$1
-    
-    if [ "$browser" = "chrome" ]; then
-        # Try to find ChromeDriver
-        if command -v chromedriver &> /dev/null; then
-            log_info "ChromeDriver found in PATH"
-            return 0
-        fi
-        
-        # Check common locations
-        local locations=(
-            "/usr/local/bin/chromedriver"
-            "/usr/bin/chromedriver"
-            "/opt/chromedriver/chromedriver"
-            "${HOME}/.local/bin/chromedriver"
-        )
-        
-        for location in "${locations[@]}"; do
-            if [ -f "$location" ] && [ -x "$location" ]; then
-                log_info "ChromeDriver found at: $location"
-                export PATH="$PATH:$(dirname "$location")"
-                return 0
-            fi
-        done
-        
-        log_error "ChromeDriver not found. Please install ChromeDriver matching your Chrome version."
-        log_info "You can download it from: https://chromedriver.chromium.org/"
-        return 1
-        
-    elif [ "$browser" = "firefox" ]; then
-        # Try to find geckodriver
-        if command -v geckodriver &> /dev/null; then
-            log_info "GeckoDriver found in PATH"
-            return 0
-        fi
-        
-        # Check common locations
-        local locations=(
-            "/usr/local/bin/geckodriver"
-            "/usr/bin/geckodriver"
-            "/opt/geckodriver/geckodriver"
-            "${HOME}/.local/bin/geckodriver"
-        )
-        
-        for location in "${locations[@]}"; do
-            if [ -f "$location" ] && [ -x "$location" ]; then
-                log_info "GeckoDriver found at: $location"
-                export PATH="$PATH:$(dirname "$location")"
-                return 0
-            fi
-        done
-        
-        log_error "GeckoDriver not found. Please install GeckoDriver for Firefox."
-        log_info "You can download it from: https://github.com/mozilla/geckodriver/releases"
-        return 1
-    fi
-    
-    return 1
-}
-
 # Run scraper with specified mode
 run_scraper() {
     local mode=$1
@@ -254,29 +186,6 @@ run_scraper() {
     else
         log_error "No browser available"
         exit 1
-    fi
-    
-    # Get driver for chosen browser
-    if ! get_browser_driver "$browser"; then
-        # Try fallback browser
-        if [ "$browser" = "chrome" ] && [ "$FIREFOX_AVAILABLE" = true ]; then
-            log_info "Falling back to Firefox"
-            browser="firefox"
-            if ! get_browser_driver "$browser"; then
-                log_error "Failed to get driver for Firefox"
-                exit 1
-            fi
-        elif [ "$browser" = "firefox" ] && [ "$CHROME_AVAILABLE" = true ]; then
-            log_info "Falling back to Chrome"
-            browser="chrome"
-            if ! get_browser_driver "$browser"; then
-                log_error "Failed to get driver for Chrome"
-                exit 1
-            fi
-        else
-            log_error "No working browser driver found"
-            exit 1
-        fi
     fi
     
     # Prepare environment variables for Python script

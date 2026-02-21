@@ -20,6 +20,7 @@ The result is a ranked list of job matches saved to file.
 * **Browser fallback support** (Chrome with Firefox fallback)
 * **Cookie-based session persistence** for automated login
 * **Dependency auto-installation** and validation
+* **Automatic driver management** (Selenium 4.6.0+ with webdriver-manager)
 
 ---
 
@@ -63,7 +64,7 @@ The `run.sh` script provides three operation modes:
 1. Run `./run.sh` and select option 4 "Check dependencies and setup"
 2. The script will:
    - Create a Python virtual environment
-   - Install required dependencies (selenium, requests)
+   - Install required dependencies (selenium, webdriver-manager, requests)
    - Validate browser installations
    - Create necessary directories
 
@@ -126,7 +127,7 @@ Results are written to `job_matches.txt`.
 
 * **Python 3.x** with venv or virtualenv support
 * **Google Chrome** or **Firefox** browser
-* **ChromeDriver** or **GeckoDriver** (auto-detected with helpful errors)
+* **No driver installation needed** - Selenium 4.6.0+ automatically manages drivers
 * **resume-matcher API** (optional, for matching functionality)
 
 ---
@@ -137,3 +138,4 @@ Results are written to `job_matches.txt`.
 * The matcher API must be running locally on port 3000 to enable matching
 * If no job descriptions are scraped, the matcher will be skipped
 * Logs are saved to `scraper.log` with [*] for info and [error] for errors
+* **Driver management is automatic** - no need to install ChromeDriver or GeckoDriver manually

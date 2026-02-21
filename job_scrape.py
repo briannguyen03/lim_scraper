@@ -11,6 +11,7 @@ Updated to support:
 - Multiple browser options (Chrome with fallback to Firefox)
 - Cookie saving/loading modes
 - Environment variable configuration via run.sh
+- Selenium 4.6.0+ automatic driver management
 '''
 
 import os
@@ -25,6 +26,10 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options as ChromeOptions
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.firefox.service import Service as FirefoxService
+from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.firefox import GeckoDriverManager
 
 
 class UVicJobBoardScraper:
@@ -69,8 +74,10 @@ class UVicJobBoardScraper:
         options.add_experimental_option('useAutomationExtension', False)
         
         try:
-            # Try to create driver with Chrome
-            driver = webdriver.Chrome(options=options)
+            # Use webdriver-manager to automatically handle ChromeDriver
+            print("[*] Setting up ChromeDriver automatically...")
+            service = ChromeService(ChromeDriverManager().install())
+            driver = webdriver.Chrome(service=service, options=options)
             print("[*] Chrome driver initialized successfully")
             return driver
         except Exception as e:
@@ -103,7 +110,10 @@ class UVicJobBoardScraper:
         options.set_preference('devtools.jsonview.enabled', False)
         
         try:
-            driver = webdriver.Firefox(options=options)
+            # Use webdriver-manager to automatically handle GeckoDriver
+            print("[*] Setting up GeckoDriver automatically...")
+            service = FirefoxService(GeckoDriverManager().install())
+            driver = webdriver.Firefox(service=service, options=options)
             print("[*] Firefox driver initialized successfully")
             return driver
         except Exception as e:
